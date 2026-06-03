@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integer Sign Practice</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        /* Ensure everything fits nicely on one screen */
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background-color: #f0f4f8;
+        }
+        .grid-container {
+            height: calc(100vh - 100px);
+        }
+    </style>
+</head>
+<body class="flex flex-col font-sans text-slate-800 p-4">
+
+    <header class="flex justify-between items-center bg-white shadow-md rounded-xl px-6 py-3 mb-4 border border-slate-200">
+        <h1 class="text-2xl font-bold text-indigo-700 tracking-wide">
+            🎯 Determine the Sign! <span class="text-sm font-normal text-slate-500 block sm:inline sm:ml-2">Is the final answer Positive or Negative?</span>
+        </h1>
+        <div class="flex gap-3">
+            <button onclick="createNewSet()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors shadow shadow-emerald-700/30 text-lg cursor-pointer">
+                🔄 Generate New Set
+            </button>
+            <button onclick="toggleFullScreen()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors shadow shadow-indigo-700/30 text-lg cursor-pointer">
+                📺 Full Screen
+            </button>
+        </div>
+    </header>
+
+    <main id="quiz-grid" class="grid-container grid grid-cols-3 grid-rows-6 gap-3 w-full">
+        </main>
+
+    <script>
+        // Helper to generate a random integer between min and max (inclusive)
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        // Generate the 18 problems based on progressive difficulty rules
+        function generateProblems() {
+            const problems = [];
+
+            for (let i = 1; i <= 18; i++) {
+                let type, num1, num2, expr, sign, finalAns, feedbackType;
+
+                if (i <= 6) {
+                    // Level 1: Single-digit combinations
+                    type = getRandomInt(1, 3);
+                    if (type === 1) { // pos - pos (e.g., 4 - 9 or 9 - 4)
+                        num1 = getRandomInt(2, 9);
+                        num2 = getRandomInt(2, 9);
+                        while(num1 === num2) num2 = getRandomInt(2, 9);
+                        expr = `${num1} &minus; ${num2}`;
+                        finalAns = num1 - num2;
+                        feedbackType = 'opposite';
+                    } else if (type === 2) { // -neg + pos (e.g., -5 + 8)
+                        num1 = -getRandomInt(2, 9);
+                        num2 = getRandomInt(2, 9);
+                        while(Math.abs(num1) === num2) num2 = getRandomInt(2, 9);
+                        expr = `${num1} + ${num2}`;
+                        finalAns = num1 + num2;
+                        feedbackType = 'opposite';
+                    } else { // -neg - pos (e.g., -3 - 4)
+                        num1 = -getRandomInt(2, 6);
+                        num2 = getRandomInt(2, 6);
+                        expr = `${num1} &minus; ${num2}`;
+                        finalAns = num1 - num2;
+                        feedbackType = 'two-negatives';
+                    }
+                } else if (i <= 12) {
+                    // Level 2: Double-digit combinations
+                    type = getRandomInt(1, 3);
+                    if (type === 1) { // pos - pos
+                        num1 = getRandomInt(15, 99);
+                        num2 = getRandomInt(15, 99);
+                        while(num1 === num2) num2 = getRandomInt(15, 99);
+                        expr = `${num1} &minus; ${num2}`;
+                        finalAns = num1 - num2;
+                        feedbackType = 'opposite';
+                    } else if (type === 2) { // -neg + pos
+                        num1 = -getRandomInt(15, 99);
+                        num2 = getRandomInt(15, 99);
+                        while(Math.abs(num1) === num2) num2 = getRandomInt(15, 99);
+                        expr = `${num1} + ${num2}`;
+                        finalAns = num1 + num2;
+                        feedbackType = 'opposite';
+                    } else { // -neg - pos
+                        num1 = -getRandomInt(10, 50);
+                        num2 = getRandomInt(10, 50);
+                        expr = `${num1} &minus; ${num2}`;
+                        finalAns = num1 - num2;
+                        feedbackType = 'two-negatives';
+                    }
+                } else {
+                    // Level 3: Double signs / Negative interactions
+                    type = getRandomInt(1, 2);
+                    if (type === 1) { // pos - (-neg) e.g., 12 - (-5)
+                        num1 = getRandomInt(5, 50);
+                        num2 = getRandomInt(5, 50);
+                        expr = `${num1} &minus; (&minus;${num2})`;
+                        finalAns = num1 - (-num2);
+                        feedbackType = 'double-negative';
+                    } else { // -pos - (-neg) e.g., -18 - (-30)
+                        num1 = -getRandomInt(5, 50);
+                        num2 = getRandomInt(5, 50);
+                        expr = `${num1} &minus; (&minus;${num2})`;
+                        finalAns = num1 - (-num2);
+                        // Becomes an opposite sign problem post double-negative rule evaluation
+                        feedbackType = 'double-negative'; 
+                    }
+                }
+
+                sign = finalAns > 0 ? 'Positive' : 'Negative';
+
+                // Build custom feedback explanations
+                let feedback = "";
+                if (feedbackType === 'two-negatives') {
+                    feedback = `The answer is Negative because you are starting negative and moving further left (combining negative values).`;
+                } else if (feedbackType === 'double-negative') {
+                    feedback = `The answer is Positive because subtracting a negative is the same as adding a positive.`;
+                } else {
+                    // Opposite signs handling logic
+                    let firstVal = num1;
+                    let secondVal = expr.includes('&minus;') ? -num2 : num2;
+                    
+                    let abs1 = Math.abs(firstVal);
+                    let abs2 = Math.abs(secondVal);
+                    
+                    let furthest = abs1 > abs2 ? abs1 : abs2;
+                    let furthestSign = "";
+                    
+                    if (abs1 > abs2) {
+                        furthestSign = firstVal > 0 ? "positive" : "negative";
+                    } else {
+                        furthestSign = secondVal > 0 ? "positive" : "negative";
+                    }
+                    feedback = `The answer is ${sign} because the number furthest from zero on a number line is ${furthest}, and ${furthest} is ${furthestSign}.`;
+                }
+
+                problems.push({
+                    id: i,
+                    expr: expr,
+                    correctSign: sign,
+                    finalAns: finalAns,
+                    feedback: feedback
+                });
+            }
+            return problems;
+        }
+
+        let currentProblems = [];
+
+        function renderGrid() {
+            const grid = document.getElementById('quiz-grid');
+            grid.innerHTML = '';
+
+            currentProblems.forEach(p => {
+                const card = document.createElement('div');
+                card.id = `card-${p.id}`;
+                // Set color accents based on difficulty tiers
+                let borderAccent = "border-l-amber-500";
+                if (p.id > 6 && p.id <= 12) borderAccent = "border-l-indigo-500";
+                if (p.id > 12) borderAccent = "border-l-fuchsia-500";
+
+                card.className = `bg-white rounded-xl shadow-xs border border-slate-200 border-l-6 ${borderAccent} p-2 flex flex-col justify-between items-center transition-all relative overflow-hidden h-full`;
+                
+                card.innerHTML = `
+                    <div class="w-full flex justify-between items-center text-slate-400 font-bold text-sm px-1">
+                        <span>#${p.id}</span>
+                    </div>
+
+                    <div id="expr-container-${p.id}" class="text-3xl md:text-4xl font-extrabold text-slate-800 tracking-tight my-auto select-none">
+                        ${p.expr}
+                    </div>
+
+                    <div id="interactive-zone-${p.id}" class="w-full flex gap-2 px-2 pb-1 justify-center">
+                        <button onclick="handleAnswer(${p.id}, 'Positive')" class="w-1/2 py-2 bg-sky-100 hover:bg-sky-200 text-sky-700 font-bold rounded-lg text-lg transition-colors cursor-pointer">
+                            Positive
+                        </button>
+                        <button onclick="handleAnswer(${p.id}, 'Negative')" class="w-1/2 py-2 bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold rounded-lg text-lg transition-colors cursor-pointer">
+                            Negative
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function handleAnswer(id, selectedSign) {
+            const p = currentProblems.find(prob => prob.id === id);
+            const card = document.getElementById(`card-${id}`);
+            const interactiveZone = document.getElementById(`interactive-zone-${id}`);
+            const exprContainer = document.getElementById(`expr-container-${id}`);
+
+            const isCorrect = selectedSign === p.correctSign;
+
+            // Reduce math expression size slightly to ensure everything fits comfortably together
+            exprContainer.className = "text-xl font-extrabold text-slate-500 mt-1";
+            exprContainer.innerHTML = `${p.expr} = <span class="text-slate-900 font-black">${p.finalAns}</span>`;
+
+            if (isCorrect) {
+                card.className = "bg-emerald-50 rounded-xl border-2 border-emerald-500 p-2 flex flex-col justify-between items-center text-center h-full transition-all shadow-inner";
+                interactiveZone.className = "w-full text-center py-2 flex flex-col items-center justify-center my-auto";
+                interactiveZone.innerHTML = `
+                    <span class="text-emerald-700 font-black text-xl tracking-wide block animate-bounce">✓ CORRECT!</span>
+                    <span class="text-emerald-800 font-medium text-sm px-2 mt-1 leading-tight">It is ${p.correctSign}.</span>
+                `;
+            } else {
+                card.className = "bg-rose-50 rounded-xl border-2 border-rose-400 p-2 flex flex-col justify-between items-center text-center h-full transition-all shadow-inner";
+                interactiveZone.className = "w-full text-center flex flex-col items-center justify-center my-auto px-1 overflow-y-auto";
+                interactiveZone.innerHTML = `
+                    <span class="text-rose-700 font-black text-lg tracking-wide block">✗ TRY AGAIN</span>
+                    <p class="text-rose-950 font-bold text-[13px] leading-tight mt-1 bg-white/60 p-1.5 rounded border border-rose-200">
+                        ${p.feedback}
+                    </p>
+                `;
+            }
+        }
+
+        function createNewSet() {
+            currentProblems = generateProblems();
+            renderGrid();
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    alert(`Error trying to enable full-screen mode: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Initialize grid setup on window mount
+        window.onload = createNewSet;
+    </script>
+</body>
+</html>
